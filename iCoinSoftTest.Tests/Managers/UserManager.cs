@@ -9,58 +9,54 @@ namespace iCoinSoftTest.Managers
     {
         private readonly ConcurrentDictionary<int, User> _allUsers = new ConcurrentDictionary<int, User>();
 
-        private readonly ConcurrentDictionary<string, List<User>> _indexUsers = new ConcurrentDictionary<string, List<User>>();
+        private readonly ConcurrentDictionary<string, SortedList<int, User>> _indexUsers = new ConcurrentDictionary<string, SortedList<int, User>>();
 
         public void Add(User user)
         {
             _allUsers[user.Id] = user;
-            
-            var keys1 = GetKeys(user.Login.ToLower());
-            var keys2 = GetKeys(user.Email.ToLower());
-            var keys3 = GetKeys(user.Phone.ToLower());
-            var keys = keys1.Union(keys2).Union(keys3).ToList();
 
-            foreach (var key in keys)
+            var set = new HashSet<string>();
+
+            AddKeys(set, user.Login.ToLower());
+            AddKeys(set, user.Email.ToLower());
+            AddKeys(set, user.Phone.ToLower());
+
+            foreach (var key in set)
             {
                 if (_indexUsers.ContainsKey(key) == false)
-                    _indexUsers[key] = new List<User>();
+                    _indexUsers[key] = new SortedList<int, User>();
 
-                _indexUsers[key].Add(user);
-
-                // TODO: Заменить на алгоритм для частично отсортированных данных. (orderBy использует qsort)
-                _indexUsers[key] = _indexUsers[key].OrderBy(x => x.Id).ToList();
+                _indexUsers[key].Add(user.Id, user);
             }
         }
 
         public bool Update(int userId, User user)
         {
-            if (_allUsers.ContainsKey(user.Id) == false)
+            if (_allUsers.ContainsKey(userId) == false)
                 return false;
 
-            _allUsers[user.Id] = user;
+            _allUsers[userId] = user;
             return true;
         }
 
         public List<User> Find(string filter, int limit)
         {
-            return _indexUsers[filter].Take(limit).ToList();
+            if (_indexUsers.ContainsKey(filter) == false)
+                return new List<User>();
+
+            return _indexUsers[filter].Values.Take(limit).ToList();
         }
 
-        private List<string> GetKeys(string source)
+        private void AddKeys(HashSet<string> set, string source)
         {
-            var keys = new List<string>();
             for (var i = 0; i < source.Length; i++)
             {
                 for (var j = i + 1; j <= source.Length; j++)
                 {
                     var str = source.Substring(i,j-i);
-                    keys.Add(str);
+                    set.Add(str);
                 }
             }
-
-            keys = keys.Distinct().ToList();
-
-            return keys;
         }
     }
 }
