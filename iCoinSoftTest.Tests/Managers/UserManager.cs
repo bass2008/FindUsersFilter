@@ -26,6 +26,9 @@ namespace iCoinSoftTest.Managers
                     _indexUsers[key] = new List<User>();
 
                 _indexUsers[key].Add(user);
+
+                // TODO: Заменить на алгоритм для частично отсортированных данных. (orderBy использует qsort)
+                _indexUsers[key] = _indexUsers[key].OrderBy(x => x.Id).ToList();
             }
         }
 
